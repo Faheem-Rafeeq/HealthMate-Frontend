@@ -1,6 +1,8 @@
+// src/Screens/SignUpPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon } from "../Components/Icons";
+import { EyeIcon, EyeSlashIcon } from '../Components/Icons';
+import { authAPI, setAuthToken } from '../services/api.js';
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +15,7 @@ const SignUpPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -22,7 +24,7 @@ const SignUpPage = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({
@@ -34,71 +36,63 @@ const SignUpPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
     } else if (formData.username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
+
     try {
-      // Custom backend API call
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password
-        })
+      // Send signup request to backend
+      const response = await authAPI.signup({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
       });
 
-      const data = await response.json();
+      if (response.success) {
+        // Store token
+        setAuthToken(response.accessToken);
 
-      if (response.ok) {
-        // Store token and user data
-        localStorage.setItem('healthmate_token', data.token);
-        localStorage.setItem('healthmate_user', JSON.stringify(data.user));
-        
+        // Store user data in localStorage
+        localStorage.setItem('healthmate_user', JSON.stringify(response.user));
+
         // Redirect to dashboard
         navigate('/dashboard');
-      } else {
-        setErrors({ general: data.message || 'Registration failed' });
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setErrors({ general: 'Network error. Please try again.' });
+      setErrors({ general: error.message || 'Registration failed. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +129,7 @@ const SignUpPage = () => {
               {errors.general}
             </div>
           )}
-          
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
@@ -243,25 +237,6 @@ const SignUpPage = () => {
               </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-                I agree to the{' '}
-                <a href="#" className="text-green-600 hover:text-green-500 font-medium">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-green-600 hover:text-green-500 font-medium">
-                  Privacy Policy
-                </a>
-              </label>
-            </div>
-
             <div>
               <button
                 type="submit"
@@ -282,7 +257,7 @@ const SignUpPage = () => {
               </button>
             </div>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
               Your health data is securely encrypted and private

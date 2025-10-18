@@ -1,7 +1,8 @@
 // src/Screens/LoginPage.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon } from "../Components/Icons";
+import { EyeIcon, EyeSlashIcon } from '../Components/Icons';
+import { authAPI, setAuthToken } from '../services/api.js';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -20,7 +21,7 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -31,56 +32,48 @@ const LoginPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
+
     try {
-      // Custom backend API call
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
+      // Send login request to backend
+      const response = await authAPI.login({
+        email: formData.email,
+        password: formData.password
       });
 
-      const data = await response.json();
+      if (response.success) {
+        // Store token
+        setAuthToken(response.accessToken);
 
-      if (response.ok) {
-        // Store token and user data
-        localStorage.setItem('healthmate_token', data.token);
-        localStorage.setItem('healthmate_user', JSON.stringify(data.user));
-        
+        // Store user data in localStorage
+        localStorage.setItem('healthmate_user', JSON.stringify(response.user));
+
         // Redirect to dashboard
         navigate('/dashboard');
-      } else {
-        setErrors({ general: data.message || 'Invalid email or password' });
       }
     } catch (error) {
       console.error('Login error:', error);
-      setErrors({ general: 'Network error. Please try again.' });
+      setErrors({ general: error.message || 'Login failed. Please check your credentials.' });
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +110,7 @@ const LoginPage = () => {
               {errors.general}
             </div>
           )}
-          
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
