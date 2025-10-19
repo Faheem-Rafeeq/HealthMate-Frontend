@@ -5,6 +5,7 @@ import LoginPage from './Screens/Login';
 import SignUpPage from './Screens/Signup';
 import Dashboard from './Screens/Dashboard';
 import ProtectedRoute from './Components/ProtectedRoute';
+import UploadReport from './Screens/UploadReport';
 
 function App() {
   return (
@@ -14,27 +15,37 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
-          
+
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute>
+                <UploadReport />
+              </ProtectedRoute>
+            }
+          />
+
+
           {/* Protected Routes */}
-          <Route 
-            path="/dashboard" 
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
-            } 
+            }
           />
-          
+
           {/* Default route - redirect to dashboard if logged in, else to login */}
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
-            } 
+            }
           />
-          
+
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
